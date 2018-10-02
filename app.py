@@ -15,7 +15,7 @@ class SessionHandler(BaseHTTPRequestHandler):
             response = 200
             cookies = self.parse_cookies(self.headers["Cookie"])
             if "sid" in cookies:
-                self.user = (cookies["sid"] in sessions)
+                self.user = cookies["sid"] if (cookies["sid"] in sessions) else False
             else:
                 self.user = False
             content = routes[self.path]()
@@ -26,9 +26,9 @@ class SessionHandler(BaseHTTPRequestHandler):
         self.send_response(response)
         self.send_header('Content-type','text/html')
 
-        print(self.cookie)
         if self.cookie:
             self.send_header('Set-Cookie', self.cookie)
+
         self.end_headers()
         self.wfile.write(bytes(content, "utf-8"))
         return
@@ -37,14 +37,17 @@ class SessionHandler(BaseHTTPRequestHandler):
         return "Welcome User!" if self.user else "Welcome Stranger!"
 
     def login(self):
-        # Password normally be checked here
+        # Password would normally be checked here
         sid = self.generate_sid()
         self.cookie = "sid={}".format(sid)
         sessions[sid] = {"username", "useragent","ip address","expiry"}
         return "Logged In"
 
     def logout(self):
-        # todo: perform logout
+        if not self.user:
+            return "Can't Log Out: No User Logged In"
+        self.cookie = "sid="
+        del sessions[self.user]
         return "Logged Out"
 
     def generate_sid(self):
